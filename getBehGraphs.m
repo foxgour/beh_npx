@@ -1,11 +1,16 @@
-function [rearranged_licks_rew, rearranged_speed_rew,rearranged_licks_FC, rearranged_speed_FC,rearranged_licks_RC, rearranged_speed_RC, lightCues] ...
-    = getBehGraphs(fileName)
+function [rearranged_licks_rew, rearranged_speed_rew,rearranged_licks_FC, rearranged_speed_FC,rearranged_licks_RC, rearranged_speed_RC, lightCue] ...
+    = getBehGraphs(sess)
 
-    load(fileName)
-    sessName = sess.name(1:end-11);
+    
+    sessName = sess.name(1:end-3);
     mkdir(pwd, "\plots" + sessName);
     cd(pwd +  "\plots" + sessName);
-    lightCues = 0;
+    try 
+        sess.fixedCue;
+        lightCue = 1;
+    catch
+        lightCue = 0;
+    end
     
     %set up global variables for acquisition rate and speed threshold
     global acq;
@@ -38,8 +43,6 @@ function [rearranged_licks_rew, rearranged_speed_rew,rearranged_licks_FC, rearra
     
     timeL = splitIntoLaps(sess.ts, numLaps, startLevels, endRec);
     licksL = splitIntoLaps(sess.lck, numLaps, startLevels, endRec);
-    fixedCueL = splitIntoLaps(sess.fixedCue, numLaps, startLevels, endRec);
-    randCueL = splitIntoLaps(sess.randCue, numLaps, startLevels, endRec);
     rewardL = splitIntoLaps(sess.rwd, numLaps, startLevels, endRec);
     runTimesL = splitIntoLaps(runTimes, numLaps, startLevels, endRec);
     
@@ -55,8 +58,9 @@ function [rearranged_licks_rew, rearranged_speed_rew,rearranged_licks_FC, rearra
     rewardSpatiallyBinned(rewardSpatiallyBinned ==0) = nan;
     rewardSpatiallyBinned(rewardSpatiallyBinned >0) = 1;
     
-    if ~isempty(sess.fixedCueInd)
-        lightCues = 1;
+    if lightCue
+        fixedCueL = splitIntoLaps(sess.fixedCue, numLaps, startLevels, endRec);
+        randCueL = splitIntoLaps(sess.randCue, numLaps, startLevels, endRec);
         %get randcue field
         val = randCueL;
         scaling = 0;
@@ -129,7 +133,7 @@ function [rearranged_licks_rew, rearranged_speed_rew,rearranged_licks_FC, rearra
     
     
     %% cues for light paradigm
-    if lightCues
+    if lightCue
         [rearranged_speed_FC, rearranged_licks_FC] = normalizeToCue(fixedcueSpatiallyBinned, licksSpatiallyBinned, speedSpatiallyBinned);
         
         rearranged_speed_FC = circshift(rearranged_speed_FC, [0 49]); %rew should now be in middle

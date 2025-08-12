@@ -18,10 +18,13 @@ slopesLast20LicksRC = [];
 slopesFirst20VelRC = [];
 slopesLast20VelRC = [];
 
+currFold = pwd;
 
 for i = 1:length(behFiles)
+    cd(currFold)
     fileName = behFiles(i).name;
-    [rearranged_licks_rew, rearranged_speed_rew, rearranged_licks_FC, rearranged_speed_FC,rearranged_licks_RC, rearranged_speed_RC, lightCues] = getBehGraphs(fileName);
+    load(fileName);
+    [rearranged_licks_rew, rearranged_speed_rew, rearranged_licks_FC, rearranged_speed_FC,rearranged_licks_RC, rearranged_speed_RC, lightCue] = getBehGraphs(sess);
     %the reward or cue bin is 50
 
     meanLicksRew = mean(rearranged_licks_rew);
@@ -40,10 +43,12 @@ for i = 1:length(behFiles)
     meanSpeedsFirst20Rew = mean(rearranged_speed_rew(5:35,:));
     [pVelFirst20,sVelFirst20] = polyfit(1:16, meanSpeedsFirst20Rew(35:50), 1);
 
-    meanLicksLast20Rew = mean(rearranged_licks_all(70:100,:)); %ideally there are over 100 laps, otherwise move window
+    numLaps = sess.nlaps
+
+    meanLicksLast20Rew = mean(rearranged_licks_rew(numLaps-45:numLaps-10,:)); %ideally there are over 100 laps, otherwise move window
     [pLicksLast20,sLicksLast20] = polyfit(1:16, meanLicksLast20Rew(35:50), 1);
 
-    meanSpeedsLast20Rew = mean(rearranged_speed_rew(70:100,:));
+    meanSpeedsLast20Rew = mean(rearranged_speed_rew(numLaps-45:numLaps-10,:));
     [pVelLast20,sVelLast20] = polyfit(1:16, meanSpeedsLast20Rew(35:50), 1);
 
     slopesFirst20LicksRew(end+1) = pLicksFirst20(1)/1.86;
@@ -51,7 +56,7 @@ for i = 1:length(behFiles)
     slopesFirst20VelRew(end+1) = pVelFirst20(1)/1.86 * 100;
     slopesLast20VelRew(end+1) = pVelLast20(1)/1.86 * 100;
 
-    if lightCues
+    if lightCue
         %also to random
         meanLicksRC = mean(rearranged_licks_RC);
         [pLicks,sLicks] = polyfit(1:16, meanLicksRC(35:50), 1); %selecting 30cm before or about 16 bins
@@ -82,6 +87,3 @@ for i = 1:length(behFiles)
     end
 end
 
-
-%%
-%graph
