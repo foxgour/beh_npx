@@ -1,6 +1,6 @@
 
 
- function [valSpatiallyBinned,clims] = spatiallyBin(val,numBins,speedL,distanceL,scaling,convertToRate, timeFlag)
+function [valSpatiallyBinned,clims] = spatiallyBin(val,numBins,speedL,distanceL,scaling,convertToRate, timeFlag)
 
     
 numLaps = length(val);
@@ -31,9 +31,9 @@ for i = 2:numLaps
         
         if ~isempty(endDistance)
             if ~timeFlag 
-                valSpatiallyBinned(i, j) = mean(valL{i}(beginDistance : endDistance), 'omitnan');
+                valSpatiallyBinned(i-1, j) = mean(valL{i}(beginDistance : endDistance), 'omitnan');
             else
-                valSpatiallyBinned(i, j) = valL{i}(endDistance) - valL{i}(beginDistance);
+                valSpatiallyBinned(i-1, j) = valL{i}(endDistance) - valL{i}(beginDistance);
             end
         end
     
@@ -45,15 +45,15 @@ for i = 2:numLaps
     if scaling == 1
         %valSpatiallyBinned(i, :) = rescale(valSpatiallyBinned(i, :)); %make values go between 0 and 1
         for j = 1:numBins
-            if valSpatiallyBinned(i, j) > 0.5
-                valSpatiallyBinned(i, j) = 1;
+            if valSpatiallyBinned(i-1, j) > 0.5
+                valSpatiallyBinned(i-1, j) = 1;
             else
-                valSpatiallyBinned(i, j) = 0;
+                valSpatiallyBinned(i-1, j) = 0;
         end
     end
     
     if convertToRate ==1
-        valSpatiallyBinned(i, :) = valSpatiallyBinned(i, :)*acq;
+        valSpatiallyBinned(i-1, :) = valSpatiallyBinned(i-1, :)*acq;
     end
         
 end
@@ -69,26 +69,3 @@ if any(clims)==0
 end
 end
 
-fhandle1 = figure;
-subplot(1,2,1)
-imagesc(valSpatiallyBinned, clims)
-
-xticks([0 25 50 75 100])
-xticklabels({'0', '46', '93', '140', '186'})
-xlabel('Position(cm)')
-%xline(21.5, 'r')
-
-ylabel('Laps')
-colorbar
-
-subplot(1,2,2)
-plot(movmean(valSpatiallyBinned', 3), 'Color', [.5 .5 .5])
-hold on
-plot(mean(valSpatiallyBinned, 'omitnan'), 'LineWidth', 2, 'Color', 'k')
-box off
-
-xticks([0 50 100])
-xticklabels({'0', '93', '186'})
-xlabel('Position(cm)')
-
-ylabel('Licks (arb units)')

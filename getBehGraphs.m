@@ -53,10 +53,17 @@ function [rearranged_licks_rew, rearranged_speed_rew,rearranged_licks_FC, rearra
     scaling = 0;
     convertToRate = 0;
     ylab = '';
-    rewardSpatiallyBinned = spatiallyBin(val,numBins,speedL,distanceL,scaling,ylab,convertToRate);
+    rewardSpatiallyBinned = spatiallyBin(val,numBins,speedL,distanceL,scaling,convertToRate, 0);
     close
     rewardSpatiallyBinned(rewardSpatiallyBinned ==0) = nan;
     rewardSpatiallyBinned(rewardSpatiallyBinned >0) = 1;
+
+    val = timeL;
+    scaling = 0;
+    convertToRate = 0;
+    ylab = '';
+    timeSpatiallyBinned = spatiallyBin(val,numBins,speedL,distanceL,scaling,convertToRate, 1);
+    close
     
     if lightCue
         fixedCueL = splitIntoLaps(sess.fixedCue, numLaps, startLevels, endRec);
@@ -87,26 +94,35 @@ function [rearranged_licks_rew, rearranged_speed_rew,rearranged_licks_FC, rearra
     scaling = 0;
     convertToRate = 0;
     ylab = 'Speed (cm/s)';
-    speedSpatiallyBinned = spatiallyBin(val,numBins,speedL,distanceL,scaling,ylab,convertToRate);
+    [speedSpatiallyBinned, clims] = spatiallyBin(val,numBins,speedL,distanceL,scaling,convertToRate, 0);
+    graphIndividLaps(speedSpatiallyBinned, clims, ylab, overlayReward, rewardSpatiallyBinned);
     sgtitle('Speed')
-    run overLayRewardRelease.m
     savefig(gcf, "speed" + sessName + ".fig")
-    print(gcf,"speed" + sessName + ".fig",'-dpng','-r300');
     
     %plot licking
     val = licksL;
     scaling = 0;
     convertToRate = 0;
-    ylab = 'Licks (arb units)';
-    licksSpatiallyBinned = spatiallyBinLicks(val,numBins,speedL,distanceL,scaling,ylab,convertToRate);
+    ylab = 'Licks';
+    [licksSpatiallyBinned, clims] = spatiallyBinSum(val,numBins,speedL,distanceL,scaling,convertToRate, 0);
+    graphIndividLaps(licksSpatiallyBinned, clims, ylab, overlayReward, rewardSpatiallyBinned);
     sgtitle('Licks')
-    run overLayRewardRelease.m
     savefig(gcf, "licks" + sessName + ".fig")
-    print(gcf,"licks" + sessName + ".fig",'-dpng','-r300');
+    close all
+
+    %plot licking in Hz
+    scaling = 0;
+    convertToRate = 0;
+    ylab = 'Licks (Hz)';
+    lickHzSpatiallyBinned = licksSpatiallyBinned./timeSpatiallyBinned;
+    clims = [prctile(lickHzSpatiallyBinned(:),1) prctile(lickHzSpatiallyBinned(:),99)];
+    graphIndividLaps(lickHzSpatiallyBinned, clims, ylab, overlayReward, rewardSpatiallyBinned);
+    sgtitle('Lick Rate')
+    savefig(gcf, "lickHz" + sessName + ".fig")
     close all
     
     %% plot licks/speed with SEM with reward release at zero
-    [rearranged_speed_rew, rearranged_licks_rew] = normalizeToCue(rewardSpatiallyBinned, licksSpatiallyBinned, speedSpatiallyBinned);
+    [rearranged_speed_rew, rearranged_licks_rew] = normalizeToCue(rewardSpatiallyBinned, lickHzSpatiallyBinned, speedSpatiallyBinned);
     
     rearranged_speed_rew = circshift(rearranged_speed_rew, [0 49]); %rew should now be in middle
     rearranged_licks_rew = circshift(rearranged_licks_rew, [0 49]);
@@ -134,7 +150,7 @@ function [rearranged_licks_rew, rearranged_speed_rew,rearranged_licks_FC, rearra
     
     %% cues for light paradigm
     if lightCue
-        [rearranged_speed_FC, rearranged_licks_FC] = normalizeToCue(fixedcueSpatiallyBinned, licksSpatiallyBinned, speedSpatiallyBinned);
+        [rearranged_speed_FC, rearranged_licks_FC] = normalizeToCue(fixedcueSpatiallyBinned, lickHzSpatiallyBinned, speedSpatiallyBinned);
         
         rearranged_speed_FC = circshift(rearranged_speed_FC, [0 49]); %rew should now be in middle
         rearranged_licks_FC = circshift(rearranged_licks_FC, [0 49]);
@@ -163,9 +179,7 @@ function [rearranged_licks_rew, rearranged_speed_rew,rearranged_licks_FC, rearra
         
         rearranged_speed_RC = circshift(rearranged_speed_RC, [0 49]); %rew should now be in middle
         rearranged_licks_RC = circshift(rearranged_licks_RC, [0 49]);
-        
-        x_axis = (-numBins/2-1:numBins/2) * 1.86; 
-        
+
         mean_licks = nanmean(rearranged_licks_RC, 1); % Mean across rows (laps)
         sem_licks = nanstd(rearranged_licks_RC, 0, 1) ./ sqrt(sum(~isnan(rearranged_licks_rew), 1)); % SEM
         
